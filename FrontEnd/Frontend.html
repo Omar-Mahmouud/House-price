@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Price Predictor</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; margin: 0; padding: 40px 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        label { font-size: 0.85rem; font-weight: bold; color: #34495e; display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+        button { background-color: #27ae60; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; margin-top: 20px; transition: 0.2s; }
+        button:hover { background-color: #219150; }
+        .result { margin-top: 20px; padding: 15px; background: #e8f8f5; border: 1px solid #a3e4d7; border-radius: 6px; text-align: center; display: none; }
+        .result h3 { margin: 0; color: #16a085; font-size: 1.4rem; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>House Price Prediction</h2>
+    <form id="predictForm">
+        <div class="grid">
+            <div class="full-width">
+                <label>Location</label>
+                <select id="location_grouped" required></select>
+            </div>
+            <div>
+                <label>Area (Sqft)</label>
+                <input type="number" id="area_sqft" value="1200" required>
+            </div>
+            <div>
+                <label>Floor Number</label>
+                <input type="number" id="floor_num" value="2" required>
+            </div>
+            <div>
+                <label>Bathrooms</label>
+                <input type="number" id="Bathroom" value="2" required>
+            </div>
+            <div>
+                <label>Balconies</label>
+                <input type="number" id="Balcony" value="1" required>
+            </div>
+            <div>
+                <label>Car Parking Spots</label>
+                <input type="number" id="Car Parking" value="1" required>
+            </div>
+            <div>
+                <label>Furnishing</label>
+                <select id="Furnishing">
+                    <option value="Unfurnished">Unfurnished</option>
+                    <option value="Semi-Furnished">Semi-Furnished</option>
+                    <option value="Furnished">Furnished</option>
+                </select>
+            </div>
+            <div>
+                <label>Transaction Type</label>
+                <select id="Transaction">
+                    <option value="Resale">Resale</option>
+                    <option value="New Property">New Property</option>
+                </select>
+            </div>
+            <div>
+                <label>Ownership</label>
+                <select id="Ownership">
+                    <option value="Freehold">Freehold</option>
+                    <option value="Leasehold">Leasehold</option>
+                    <option value="Power of Attorney">Power of Attorney</option>
+                    <option value="Co-operative Society">Co-operative Society</option>
+                </select>
+            </div>
+            <div class="full-width">
+                <label>Facing Direction</label>
+                <select id="facing">
+                    <option value="North">North</option>
+                    <option value="East">East</option>
+                    <option value="West">West</option>
+                    <option value="South">South</option>
+                    <option value="North-East">North-East</option>
+                    <option value="South-East">South-East</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit">Predict Price</button>
+    </form>
+
+    <div id="resultBox" class="result">
+        <p style="margin:0; font-size: 0.9rem; color: #7f8c8d;">Estimated Property Price:</p>
+        <h3 id="priceOutput">₹0.00</h3>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    async function fetchLocations() {
+        try {
+            const res = await fetch(`${API_URL}/locations`);
+            const data = await res.json();
+            const locationSelect = document.getElementById("location_grouped");
+
+            data.locations.forEach(loc => {
+                const opt = document.createElement("option");
+                opt.value = loc;
+                opt.textContent = loc;
+                locationSelect.appendChild(opt);
+            });
+        } catch (err) {
+            console.error("Failed to load locations:", err);
+        }
+    }
+
+    document.getElementById("predictForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const payload = {
+            area_sqft: parseFloat(document.getElementById("area_sqft").value),
+            floor_num: parseInt(document.getElementById("floor_num").value),
+            Bathroom: parseFloat(document.getElementById("Bathroom").value),
+            Balcony: parseFloat(document.getElementById("Balcony").value),
+            "Car Parking": parseFloat(document.getElementById("Car Parking").value),
+            location_grouped: document.getElementById("location_grouped").value,
+            society_grouped: "other",
+            Furnishing: document.getElementById("Furnishing").value,
+            Transaction: document.getElementById("Transaction").value,
+            Ownership: document.getElementById("Ownership").value,
+            facing: document.getElementById("facing").value
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/predict`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                document.getElementById("priceOutput").textContent = data.predicted_price_formatted;
+                document.getElementById("resultBox").style.display = "block";
+            } else {
+                alert("Prediction Error: " + JSON.stringify(data.detail));
+            }
+        } catch (err) {
+            alert("Error connecting to backend API.");
+        }
+    });
+
+    fetchLocations();
+</script>
+
+</body>
+</html>

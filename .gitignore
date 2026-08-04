@@ -1,0 +1,5 @@
+*.pkl
+*.joblib
+*.csv
+.venv/
+__pycache__/git init
